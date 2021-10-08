@@ -12,11 +12,19 @@ body {
     content: "";
     display: table;
   }
-  
+  .x-character {
+    color: red;
+  }
+  .o-character {
+    color: green;
+  }
   .status {
     margin-bottom: 10px;
   }
-  
+  .clicked{
+    background-color: black;
+    color: white;
+  }
   .square {
     background: #fff;
     border: 1px solid #999;
