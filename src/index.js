@@ -1,9 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 
 const ROWS_NUM = 20;
 const COLS_NUM = 20;
+function createTwoDimensionArray(rows, cols) {
+    let arr = [];
+    for(let i = 0; i < rows; i++) {
+        arr.push(new Array(cols).fill(null));
+    }
+    return arr;
+}
+
 function Square(props) {
     return (
         <button className={'square '+ (props.value === 'X' ? 'x-character' : 'o-character')} onClick={props.onClick}>
@@ -11,121 +19,98 @@ function Square(props) {
         </button>
     );
 }
-class Board extends React.Component {    
-    renderRow(rowIndex) {
+
+function Board(props) {
+    const renderRow = (rowIndex) => {
         let boardRow = [];
         for (let i=0; i<COLS_NUM; i++) {
-            boardRow.push(<Square key={`location${rowIndex}-${i}`}  value={this.props.squares[rowIndex][i]} onClick={() => this.props.onClick(rowIndex, i)}/>);
+            boardRow.push(<Square key={`location${rowIndex}-${i}`}  value={props.squares[rowIndex][i]} onClick={() => props.onClick(rowIndex, i)}/>);
         }
         return boardRow;
     }
 
-    render() {
-        let board = [];
-        for (let i=0; i<ROWS_NUM; i++) {
-            board.push((
-                <div key={`row${i}`} className="board-row">
-                    {this.renderRow(i)}
-                </div>
-            ));
-        }
-        return (
-            <div>                            
-                {board}
+    
+    let board = [];
+    for (let i=0; i<ROWS_NUM; i++) {
+        board.push((
+            <div key={`row${i}`} className="board-row">
+                {renderRow(i)}
             </div>
-        );
-    }   
+        ));
+    }
+    return (
+        <div>                            
+            {board}
+        </div>
+    );     
 }
 
-class Game extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            history: [
-                {
-                    squares: createTwoDimensionArray(ROWS_NUM, COLS_NUM),
-                    step: {
-                        row: null,
-                        col: null,
-                    },
-                },
-            ],
-            xIsNext: true,
-            stepNumber: 0,            
-        };
-    }
+function ListItem(props) {              
+    return (
+        <li>
+            <button className={props.class} onClick={props.onClick}>
+                {props.desc}
+            </button>                
+        </li>
+    );  
+}
 
-    handleClick(row, col) {
-        const history = this.state.history.slice(0, this.state.stepNumber + 1);
-        const current = history[history.length - 1];        
+function Game(props) {
+    const [history, setHistory] = useState([{
+        squares: createTwoDimensionArray(ROWS_NUM, COLS_NUM),
+        step: {
+            row: null,
+            col: null,
+        },
+    }]);
+    const [xIsNext, setXIsNext] = useState(true);
+    const [stepNumber, setStepNumber] = useState(0);
+
+    const handleClick = (row, col) => {
+        const historyClone = history.slice(0, stepNumber + 1);
+        const current = historyClone[historyClone.length - 1];        
         if(current.squares[row][col]){
             console.log('Filled');
             return;
         }
         const squares = current.squares.map(row => row.slice());
-        squares[row][col] = this.state.xIsNext ? 'X' : 'O';
-        this.setState({
-            history: history.concat([{
-                squares: squares,
-                step: {
-                    row: row,
-                    col: col,
-                },
-            }]),
-            stepNumber: history.length,
-            xIsNext: !this.state.xIsNext,           
-        });
+        squares[row][col] = xIsNext ? 'X' : 'O';
+        setHistory(historyClone.concat([{
+            squares: squares,
+            step: {
+                row: row,
+                col: col,
+            },
+        }]));
+        setStepNumber(historyClone.length);
+        setXIsNext(!xIsNext);        
     }
 
-    jumpTo(move) {
-        this.setState({
-            stepNumber: move,
-            xIsNext: (move%2) === 0,
-        });
+    const jumpTo = (move) => {
+        setStepNumber(move);
+        setXIsNext((move%2) === 0);        
     }
-
-    render() {
-        const history = this.state.history;
-        const current = history[this.state.stepNumber];
-        const status = `Next player: ${this.state.xIsNext ? 'X' : 'O'}`; 
-        const moves = history.map((turn , move) => {
-            const desc = move ? `Go to move # ${move}: ${turn.step.row + 1}-${turn.step.col + 1}` : 'Go to game start';
-            return (
-                <ListItem key={move} desc={desc} onClick={() => this.jumpTo(move)} class={this.state.stepNumber === move ? 'clicked' : ''}/>                
-            );
-        });   
+    
+    const historyClone = history;
+    const current = historyClone[stepNumber];
+    const status = `Next player: ${xIsNext ? 'X' : 'O'}`; 
+    const moves = historyClone.map((turn , move) => {
+        const desc = move ? `Go to move # ${move}: ${turn.step.row + 1}-${turn.step.col + 1}` : 'Go to game start';
         return (
-            <div className="game">
-                <div className="game-board">
-                    <Board squares={current.squares} onClick={(row, col) => this.handleClick(row, col)}/>
-                </div>
-                <div className="game-info">
-                    <div>{status}</div>
-                    <ol>{moves}</ol>
-                </div>
+            <ListItem key={move} desc={desc} onClick={() => jumpTo(move)} class={stepNumber === move ? 'clicked' : ''}/>                
+        );
+    });   
+    return (
+        <div className="game">
+            <div className="game-board">
+                <Board squares={current.squares} onClick={(row, col) => handleClick(row, col)}/>
             </div>
-        );
-    }
-}
-
-class ListItem extends React.Component {    
-    render() {       
-        return (
-            <li>
-                <button className={this.props.class} onClick={this.props.onClick}>
-                    {this.props.desc}
-                </button>                
-            </li>
-        );
-    }
-}
-
-function createTwoDimensionArray(rows, cols) {
-    let arr = [];
-    for(let i = 0; i < rows; i++) {
-        arr.push(new Array(cols).fill(null));
-    }
-    return arr;
+            <div className="game-info">
+                <div>{status}</div>
+                <ol>{moves}</ol>
+            </div>
+        </div>
+    );    
 }
 
 ReactDOM.render(
